@@ -1,6 +1,6 @@
 <?php
 
-    include_once '../api/helper.php';
+    include_once 'helper.php';
 
     $result = $patients->read();
 

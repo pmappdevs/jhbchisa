@@ -10,20 +10,6 @@
             $this->conn = $db;
         }
 
-        public $id;
-        public $name;
-        public $surname;
-        public $middle_name;
-        public $gender;
-        public $age;
-        public $dob;
-        public $mobile_number;
-        public $emergency_name;
-        public $emergency_contact;
-        public $email_id;
-
-
-
         public function read() {
 
             $query = 'SELECT 
@@ -53,8 +39,8 @@
 
 
 
-        public function insert() {
-
+        public function insert($newDetails) {
+            $flag = false;
             $query = 'INSERT INTO ' . $this->table . '(
                 patient_prn,
                 patient_name,
@@ -83,39 +69,53 @@
             )';
 
             $stmt = $this->conn->prepare($query);    
+            if (isset($newDetails['id']) && isset($newDetails['name']) && 
+                isset($newDetails['surname']) && isset($newDetails['middle_name']) &&
+                isset($newDetails['gender']) && isset($newDetails['age']) &&
+                isset($newDetails['dob']) && isset($newDetails['mobile_number']) &&
+                isset($newDetails['emergency_name']) && isset($newDetails['emergency_contact'])) {
+                    $flag = true;
+            }else {
+                $flag = false;
+            }
 
-            $this->id = htmlspecialchars(strip_tags($this->id));
-            $this->name = htmlspecialchars(strip_tags($this->name));
-            $this->surname = htmlspecialchars(strip_tags($this->surname));
-            $this->middle_name = htmlspecialchars(strip_tags($this->middle_name));
-            $this->gender = htmlspecialchars(strip_tags($this->gender));
-            $this->age = htmlspecialchars(strip_tags($this->age));
-            $this->dob = htmlspecialchars(strip_tags($this->dob));
-            $this->mobile_number = htmlspecialchars(strip_tags($this->mobile_number));
-            $this->emergency_name = htmlspecialchars(strip_tags($this->emergency_name));
-            $this->emergency_contact = htmlspecialchars(strip_tags($this->emergency_contact));
-            $this->email_id = htmlspecialchars(strip_tags($this->email_id));    
-            $this->dob = DateTime::createFromFormat('Y-m-d', $this->dob)->format('Y-m-d');
-        
-            $stmt->bindParam(":id", $this->id);
-            $stmt->bindParam(":name", $this->name);
-            $stmt->bindParam(":surname", $this->surname);
-            $stmt->bindParam(":middle_name", $this->middle_name);
-            $stmt->bindParam(":gender", $this->gender);
-            $stmt->bindParam(":age", $this->age);
-            $stmt->bindParam(":dob", $this->dob);
-            $stmt->bindParam(":mobile_number", $this->mobile_number);
-            $stmt->bindParam(":emergency_name", $this->emergency_name);
-            $stmt->bindParam(":emergency_contact", $this->emergency_contact);
-            $stmt->bindParam(":email_id", $this->email_id);
-
-            print_r($stmt);
-
-            if($stmt->execute()) {
-                return true;
+            if ($flag) {
+                $id = htmlspecialchars(strip_tags($newDetails['id']));
+                $name = htmlspecialchars(strip_tags($newDetails['name']));
+                $surname = htmlspecialchars(strip_tags($newDetails['surname']));
+                $middle_name = htmlspecialchars(strip_tags($newDetails['middle_name']));
+                $gender = htmlspecialchars(strip_tags($newDetails['gender']));
+                $age = htmlspecialchars(strip_tags($newDetails['age']));
+                $dob = htmlspecialchars(strip_tags($newDetails['dob']));
+                $mobile_number = htmlspecialchars(strip_tags($newDetails['mobile_number']));
+                $emergency_name = htmlspecialchars(strip_tags($newDetails['emergency_name']));
+                $emergency_contact = htmlspecialchars(strip_tags($newDetails['emergency_contact']));
+                $email_id = htmlspecialchars(strip_tags($newDetails['email_id']));    
+                $dob = DateTime::createFromFormat('Y-m-d', $newDetails['dob'])->format('Y-m-d');
+            
+                $stmt->bindParam(":id", $id);
+                $stmt->bindParam(":name", $name);
+                $stmt->bindParam(":surname", $surname);
+                $stmt->bindParam(":middle_name", $middle_name);
+                $stmt->bindParam(":gender", $gender);
+                $stmt->bindParam(":age", $age);
+                $stmt->bindParam(":dob", $dob);
+                $stmt->bindParam(":mobile_number", $mobile_number);
+                $stmt->bindParam(":emergency_name", $emergency_name);
+                $stmt->bindParam(":emergency_contact", $emergency_contact);
+                $stmt->bindParam(":email_id", $email_id);
+    
+                print_r($stmt);
+    
+                if($stmt->execute()) {
+                    return true;
+                }else {
+                    return false;
+                } 
             }else {
                 return false;
-            }            
+            }
+                      
         }
 
 
@@ -146,6 +146,45 @@
             }else {
                 return $stmt;
             }  
+        }
+
+
+        public function search($key) {
+            
+            $columns = $this->getAllColumns($key);
+
+            $query = 'SELECT 
+                patient_prn as id, 
+                patient_reg_date as reg_date, 
+                patient_name as name, 
+                patient_surname as surname, 
+                patient_middle_name as middle_name, 
+                patient_gender as gender, 
+                patient_age as age, 
+                patient_dob as dob, 
+                patient_mobile_num as mobile_number, 
+                patient_emergency_name as emergency_name, 
+                patient_emergency_num as emergency_contact, 
+                patient_email_id as email_id
+            FROM 
+                ' .$this->table .'
+            WHERE ';
+
+            $query .= implode(" OR ", $columns);
+            print_r($query);
+            $stmt = $this->conn->prepare($query);
+            $stmt->execute();
+            return $stmt;
+        }
+
+        private function getAllColumns($key) {
+            $columns = Array();
+            $colQuery = $this->conn->prepare("SHOW COLUMNS FROM $this->table");
+            $colQuery->execute();
+            while ($result_colSQL = $colQuery->fetch(PDO::FETCH_ASSOC)) {
+                $columns[] = $result_colSQL['Field']." LIKE ('%".$key."%')";
+            }
+            return $columns;
         }
 
     }
